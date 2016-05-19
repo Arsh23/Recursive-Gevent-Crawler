@@ -19,7 +19,8 @@ class WikiSpider(Spider):
         item = LinkItem()
         for link in links:
 
-            next_link = link.xpath('.//@href').extract()
-            
-            if next_link[:4] == '/wiki':
+            next_link = link.xpath('.//@href').extract()[0]
+
+            if next_link[0:6] == '/wiki/' and next_link[-4:-3] != '.':
+                item['name'] = next_link
                 yield item
