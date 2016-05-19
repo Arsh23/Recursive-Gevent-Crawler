@@ -16,6 +16,7 @@ class WikiSpider(Spider):
     def closed(self, reason):
         print '--------------------------------------------------------------------------------------------------------------'
         print 'Work time:', str(self.crawler.stats.get_stats()['finish_time'] - self.crawler.stats.get_stats()['start_time'])
+        print 'Items stored : ', self.crawler.stats.get_stats()['item_scraped_count']
         print '--------------------------------------------------------------------------------------------------------------'
 
     def parse(self, response):
@@ -28,6 +29,11 @@ class WikiSpider(Spider):
         else:
             num = response.meta['num']
 
+        if 'path' not in response.meta:
+            path = link_name
+        else:
+            path = response.meta['path'] + ' >> ' + link_name
+
         item = LinkItem()
         for link in links:
             next_link = link.xpath('.//@href').extract()[0]
@@ -35,11 +41,13 @@ class WikiSpider(Spider):
             if next_link[0:6] == '/wiki/' and next_link[-4:-3] != '.':
                 item['url'] = next_link
                 item['name'] = link_name
+                item['path'] = path
                 yield item
 
                 request = Request('https://en.wikipedia.org' + next_link,callback=self.parse)
                 request.meta['num'] = num+1
+                request.meta['path'] = path
 
                 if num < 2:
-                    pass
-                    # yield request
+                    # pass
+                    yield request

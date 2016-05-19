@@ -10,6 +10,7 @@ import scrapy
 
 class LinkItem(scrapy.Item):
     # define the fields for your item here like:
+    path = scrapy.Field()
     url = scrapy.Field()
     name = scrapy.Field()
     pass
