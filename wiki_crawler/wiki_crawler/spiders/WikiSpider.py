@@ -7,16 +7,22 @@ import json
 import os
 
 start_page = 'https://en.wikipedia.org/wiki/Python_(programming_language)'
+dp = {}
+
 
 class WikiSpider(Spider):
     name = "WikiCrawler"
     allowed_domains = ["wikipedia.org"]
     start_urls = [start_page]
+    reps = 0
 
     def closed(self, reason):
         print '--------------------------------------------------------------------------------------------------------------'
         print 'Work time:', str(self.crawler.stats.get_stats()['finish_time'] - self.crawler.stats.get_stats()['start_time'])
-        print 'Items stored : ', self.crawler.stats.get_stats()['item_scraped_count']
+        print 'Items stored:', self.crawler.stats.get_stats()['item_scraped_count']
+        print 'Max Recursion level:', self.reps
+        # print 'dp = ',dp
+        # print 'reps = ',reps
         print '--------------------------------------------------------------------------------------------------------------'
 
     def parse(self, response):
@@ -42,12 +48,20 @@ class WikiSpider(Spider):
                 item['url'] = next_link
                 item['name'] = link_name
                 item['path'] = path
-                yield item
 
+                if next_link in dp:
+                    # reps.append(next_link)
+                    # pass
+                    continue;
+
+                yield item
+                
+                dp[next_link] = 1
                 request = Request('https://en.wikipedia.org' + next_link,callback=self.parse)
                 request.meta['num'] = num+1
+                self.reps = max(self.reps,num)
                 request.meta['path'] = path
 
                 if num < 2:
-                    # pass
+                    pass
                     yield request
