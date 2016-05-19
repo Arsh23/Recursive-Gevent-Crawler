@@ -13,6 +13,11 @@ class WikiSpider(Spider):
     allowed_domains = ["wikipedia.org"]
     start_urls = [start_page]
 
+    def closed(self, reason):
+        print '--------------------------------------------------------------------------------------------------------------'
+        print 'Work time:', str(self.crawler.stats.get_stats()['finish_time'] - self.crawler.stats.get_stats()['start_time'])
+        print '--------------------------------------------------------------------------------------------------------------'
+
     def parse(self, response):
         sel = Selector(response)
         links = sel.xpath('//*[@id="mw-content-text"]//a')
@@ -37,4 +42,4 @@ class WikiSpider(Spider):
 
                 if num < 2:
                     pass
-                    yield request
+                    # yield request
