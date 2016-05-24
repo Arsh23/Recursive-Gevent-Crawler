@@ -55,7 +55,7 @@ class WikiSpider(Spider):
                     continue;
 
                 yield item
-                
+
                 dp[next_link] = 1
                 request = Request('https://en.wikipedia.org' + next_link,callback=self.parse)
                 request.meta['num'] = num+1
