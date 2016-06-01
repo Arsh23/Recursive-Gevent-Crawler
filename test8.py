@@ -1,6 +1,10 @@
 from gevent import monkey
 monkey.patch_all()
 
+import time
+
+startTime = time.time()
+
 import requests
 from gevent import pool
 from lxml import html
@@ -120,38 +124,56 @@ urls = ['https://en.wikipedia.org/wiki/Python_(programming_language)']#,'https:/
 # 'https://en.wikipedia.org/wiki/Help:Authority_control',
 # 'https://en.wikipedia.org/wiki/Integrated_Authority_File',
 # 'https://en.wikipedia.org/wiki/National_Diet_Library']
+pages = 0
 
-def get_links(url):
-    print 'request sent for - ',url,'job size = ',len(jobs)
-
+def get_links2(url,r):
+    print 'request sent for - ',url
+    global pages
     r = s.get(url)
 
     if r.status_code == 200:
         tree = html.fromstring(r.text)
         title = tree.xpath('//*[@id="firstHeading"]/text()')
         links = tree.xpath('//*[@id="mw-content-text"]//a')
-        print 'extacted - ', title, 'job size = ',len(jobs)
+        print 'extacted - ', title, 'pages scraped =  ',pages
+        pages = pages + 1
 
+
+def get_links(url,r):
+    print 'request sent for - ',url
+    global pages
+    r = s.get(url)
+
+    if r.status_code == 200:
+        tree = html.fromstring(r.text)
+        title = tree.xpath('//*[@id="firstHeading"]/text()')
+        links = tree.xpath('//*[@id="mw-content-text"]//a')
+        print 'extacted - ', title, 'pages scraped =  ',pages
+        pages = pages + 1
         # next_links = []
         for link in links:
             next_link = link.xpath('.//@href')[0]
 
             if next_link[0:6] == '/wiki/' and next_link[-4:-3] != '.':
+                # print 'https://en.wikipedia.org' + next_link
+                # if r<= 1:
                 urls2.append('https://en.wikipedia.org' + next_link)
                 # pass
                 # urls2.append(p.spawn(get_links, 'https://en.wikipedia.org' + next_link))
 
 
 for url in urls:
-    jobs.append(p.spawn(get_links, url))
+    jobs.append(p.spawn(get_links, url,0))
 try:
     gevent.joinall(jobs)
 except Exception as e:
     print e
 
 for url in urls2:
-    jobs.append(p.spawn(get_links, url))
+    jobs.append(p.spawn(get_links2, url,1))
 try:
     gevent.joinall(jobs)
 except Exception as e:
     print e
+
+print ('The script took {0} second !'.format(time.time() - startTime))

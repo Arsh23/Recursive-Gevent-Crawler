@@ -52,12 +52,12 @@ class WikiSpider(Spider):
                 item['name'] = link_name
                 item['path'] = path
 
-                if next_link in self.dp:
-                    continue;
+                # if next_link in self.dp:
+                    # continue;
 
                 yield item
 
-                self.dp.append(next_link)
+                # self.dp.append(next_link)
                 request = Request('https://en.wikipedia.org' + next_link,callback=self.parse)
                 request.meta['current_level'] = current_level+1
                 self.recursions = max(self.recursions,current_level + 1)
