@@ -13,7 +13,7 @@ BOT_NAME = 'wiki_crawler'
 
 SPIDER_MODULES = ['wiki_crawler.spiders']
 NEWSPIDER_MODULE = 'wiki_crawler.spiders'
-
+# LOG_ENABLED = False
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'wiki_crawler (+http://www.yourdomain.com)'
@@ -22,7 +22,7 @@ NEWSPIDER_MODULE = 'wiki_crawler.spiders'
 ROBOTSTXT_OBEY = True
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 128
 
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay

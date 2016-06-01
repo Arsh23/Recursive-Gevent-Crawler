@@ -1,4 +1,5 @@
 *.pyc
 venv
+venv2
 testdata.json
 testdata2.json
