@@ -3,45 +3,60 @@ monkey.patch_all()
 
 import time
 import requests
-from gevent import pool, queue
+import gevent.pool
+import gevent.queue
+
 from lxml import html
 import gevent
 
 startTime = time.time()
-p = pool.Pool(32)
-q = queue.Queue()
-s = requests.Session()
 
-q.put('https://en.wikipedia.org/wiki/Python_(programming_language)')
-pages = 0
 
-def get_links(r):
-    url = q.get_nowait()
-    print 'request sent for - ',url
-    global pages
-    r = s.get(url)
 
-    if r.status_code == 200:
-        tree = html.fromstring(r.text)
-        title = tree.xpath('//*[@id="firstHeading"]/text()')
-        links = tree.xpath('//*[@id="mw-content-text"]//a')
-        print 'extacted - ', title, 'pages scraped =  ',pages
-        pages = pages + 1
-        for link in links:
-            next_link = link.xpath('.//@href')[0]
+class HtmlItem():
 
-            if next_link[0:6] == '/wiki/' and next_link[-4:-3] != '.':
-                q.put_nowait('https://en.wikipedia.org' + next_link)
+    def __init__(self,url):
+        self.url = url
+        self.title = ''
+        self.links = []
 
-g = p.spawn(get_links,0)
-p.start(g)
-p.join()
+    def __repr__(self):
+        pass
 
-while not q.empty() and not p.full():
-        for x in xrange(0, min(q.qsize(), p.free_count())):
-            g = p.spawn(get_links,0)
-            p.start(g)
-            print 'queue',q.qsize(),'pool',p.free_count()
+    def __str__(self):
+        pass
 
-p.join()
+class RecursiveCrawler():
+
+    def __init__(self,start_url,domain,max_workers):
+        self.unfinished_links_queue = gevent.queue.Queue()
+        self.workers_pool = gevent.pool.Pool(max_workers)
+        self.max_workers = max_workers
+        self.domain = domain
+        self.session = requests.Session()
+        self.start_url = start_url
+        self.pages_processsed = 0
+
+        self.root = HtmlItem(start_url)
+        #parse this
+
+    def __repr__(self):
+        pass
+
+    def __str__(self):
+        pass
+
+    def request_html(self):
+        pass
+
+    def parse(self):
+        pass
+
+    def check_url(self):
+        pass
+
+    def crawl(self):
+        pass
+
+
 print ('The script took {0} second !'.format(time.time() - startTime))
