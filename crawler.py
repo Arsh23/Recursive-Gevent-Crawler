@@ -1,13 +1,11 @@
 from gevent import monkey
 monkey.patch_all()
 
+from lxml import html
 import time
 import requests
 import gevent.pool
 import gevent.queue
-
-from lxml import html
-import gevent
 
 startTime = time.time()
 
@@ -18,9 +16,6 @@ class HtmlItem():
         self.parent_id = 0
         self.url = url
         self.title = ''
-        # self.links = []
-        # self.possible_links = []
-        # self.html_code = ''
         self.recursion_level = 0
 
     def __repr__(self):
@@ -42,14 +37,12 @@ class RecursiveCrawler():
         self.requests_sent = 0
         self.id_count = 0
         self.max_recursion_level = 2
-        # self.items = []
+        # add dict to store values
 
         self.root = HtmlItem(0,start_url)
-        #parse root
         self.unfinished_links_queue.put_nowait(self.root)
         greenlet_thread = self.workers_pool.spawn(self.add_new_links)
         self.id_count += 1
-        # self.items.append(self.root)
         self.workers_pool.start(greenlet_thread)
         self.workers_pool.join()
 
@@ -85,23 +78,24 @@ class RecursiveCrawler():
             title = tree.xpath('//*[@id="firstHeading"]/text()')[0]
         except Exception as e:
             print 'Error parsing title : ',e.message
-            self.unfinished_links_queue.put_nowait(tempitem)
+            self.unfinished_links_queue.put_nowait(tempitem) #maybe unwise
             return []
 
-        print 'Parsed - ', title, 'pro',self.pages_processsed,'req',self.requests_sent
+        print 'Parsed - ', title
         try:
             return [ (tempitem, x.xpath('.//@href')[0]) for x in tree.xpath('//*[@id="mw-content-text"]//a') ]
         except Exception as e:
             print 'Error parsing <a> tags : ',e.message
-            pass # add something here
 
     def check_url(self,url):
+        #convert this to regex
         if url[0:6] == '/wiki/' and url[-4:-3] != '.':
             return 'good'
         return 'bad'
 
     def add_new_links(self):
         valid_links = [ (x[0],self.domain + x[1]) for x in self.parse() if self.check_url(x[1]) == 'good' ]
+        # add error handling here
 
         for link in valid_links:
             self.pages_processsed += 1
@@ -109,8 +103,10 @@ class RecursiveCrawler():
             self.id_count += 1
             tempitem.parent_id = link[0].id
             if link[0].recursion_level + 1 < self.max_recursion_level:
+                # add dp/repition check here
                 tempitem.recursion_level = link[0].recursion_level + 1
                 self.unfinished_links_queue.put_nowait(tempitem)
+                # add some way to store these objects
 
     def crawl(self):
         while not self.unfinished_links_queue.empty() and not self.workers_pool.full():
@@ -124,5 +120,6 @@ class RecursiveCrawler():
 c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',32)
 c.crawl()
 
-
+print 'Items Processed : ', c.pages_processsed
+print 'Requests Made : ', c.requests_sent
 print ('The script took {0} second !'.format(time.time() - startTime))
