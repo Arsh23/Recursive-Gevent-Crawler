@@ -55,11 +55,11 @@ def parse(htmlcode):
     print 'extacted - ', title
 
     for link in links:
-            next_link = link.xpath('.//@href')[0]
+        next_link = link.xpath('.//@href')[0]
 
-            if next_link[0:6] == '/wiki/' and next_link[-4:-3] != '.':
-                pass
-                # print next_link
+        if next_link[0:6] == '/wiki/' and next_link[-4:-3] != '.':
+            pass
+            # print next_link
 
 def handleResponse(r):
     # print "version=%s\ncode=%s\nphrase='%s'" % (r.version, r.code, r.phrase)
