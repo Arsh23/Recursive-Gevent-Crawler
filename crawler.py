@@ -39,6 +39,10 @@ class RecursiveCrawler():
 
         self.root = HtmlItem(start_url)
         #parse this
+        self.unfinished_links_queue.put_nowait(self.root)
+        greenlet_thread = self.workers_pool.spawn(self.add_new_links)
+        self.workers_pool.start(greenlet_thread)
+        self.workers_pool.join()
 
     def __repr__(self):
         pass
@@ -47,16 +51,69 @@ class RecursiveCrawler():
         pass
 
     def request_html(self):
-        pass
+        tempitem = self.unfinished_links_queue.get_nowait()
+        url = tempitem.url
+        print 'Request sent for - ',url
 
-    def parse(self):
-        pass
+        try:
+            response = self.session.get(url)
+        except Exception as e:
+            print 'Request for '+url+' failed, will try later'
+            self.unfinished_links_queue.put_nowait(tempitem)
+            return None
 
-    def check_url(self):
-        pass
+        if response.status_code == 200:
+            return response.text
+        else:
+            return None
+
+    def parse(self,html_code):
+        tree = html.fromstring(html_code)
+        try:
+            title = tree.xpath('//*[@id="firstHeading"]/text()')[0]
+        except Exception as e:
+            print 'Error parsing'
+            return []
+
+
+        links = tree.xpath('//*[@id="mw-content-text"]//a')
+
+        next_links = []
+        for link in links:
+            try:
+                next_links.append(link.xpath('.//@href')[0])
+            except Exception as e:
+                pass # add something here
+
+
+        print 'Parsed - ', title
+        self.pages_processsed += 1
+
+        return next_links
+
+    def check_url(self,url):
+        if url[0:6] == '/wiki/' and url[-4:-3] != '.':
+            return 'good'
+        return 'bad'
+
+    def add_new_links(self):
+        valid_links = [ self.domain + url for url in self.parse(self.request_html()) if self.check_url(url) == 'good' ]
+        for link in valid_links:
+            tempitem = HtmlItem(link)
+            self.unfinished_links_queue.put_nowait(tempitem)
 
     def crawl(self):
-        pass
+        while not self.unfinished_links_queue.empty() and not self.workers_pool.full():
+            for x in xrange(0, min(self.unfinished_links_queue.qsize(), self.workers_pool.free_count())):
+                greenlet_thread = self.workers_pool.spawn(self.add_new_links)
+                self.workers_pool.start(greenlet_thread)
+                # print 'queue',q.qsize(),'pool',p.free_count()
+
+        self.workers_pool.join()
+
+
+c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',32)
+c.crawl()
 
 
 print ('The script took {0} second !'.format(time.time() - startTime))
