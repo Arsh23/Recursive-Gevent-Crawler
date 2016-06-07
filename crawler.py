@@ -6,6 +6,7 @@ import time
 import requests
 import gevent.pool
 import gevent.queue
+from copy import deepcopy
 
 startTime = time.time()
 
@@ -35,15 +36,18 @@ class RecursiveCrawler():
         self.start_url = start_url
         self.pages_processsed = 0
         self.requests_sent = 0
+        self.err_requests = 0
         self.id_count = 0
         self.max_recursion_level = 2
         # add dict to store values
+        self.items = {}
 
         self.root = HtmlItem(0,start_url)
-        self.unfinished_links_queue.put_nowait(self.root)
-        greenlet_thread = self.workers_pool.spawn(self.add_new_links)
+        self.items['0'] = deepcopy(self.root)
         self.id_count += 1
-        self.workers_pool.start(greenlet_thread)
+
+        self.unfinished_links_queue.put_nowait('0')
+        self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
         self.workers_pool.join()
 
     def __repr__(self):
@@ -59,6 +63,7 @@ class RecursiveCrawler():
             response = self.session.get(url)
         except Exception as e:
             print 'Request for '+url+' failed, will try later : ',e.message
+            self.err_requests += 1
             return None
         if response.status_code == 200:
             return response.text
@@ -66,8 +71,9 @@ class RecursiveCrawler():
             return None
 
     def parse(self):
-        tempitem = self.unfinished_links_queue.get_nowait()
-        url = tempitem.url
+        tempid = self.unfinished_links_queue.get_nowait()
+        print 'tempid',tempid
+        url = self.items[tempid].url
 
         html_code = self.request_html(url)
         if html_code is None:
@@ -78,12 +84,13 @@ class RecursiveCrawler():
             title = tree.xpath('//*[@id="firstHeading"]/text()')[0]
         except Exception as e:
             print 'Error parsing title : ',e.message
-            self.unfinished_links_queue.put_nowait(tempitem) #maybe unwise
+            self.err_requests += 1
+            # self.unfinished_links_queue.put_nowait(tempid) #maybe unwise
             return []
 
         print 'Parsed - ', title
         try:
-            return [ (tempitem, x.xpath('.//@href')[0]) for x in tree.xpath('//*[@id="mw-content-text"]//a') ]
+            return [ (tempid, x.xpath('.//@href')[0]) for x in tree.xpath('//*[@id="mw-content-text"]//a') ]
         except Exception as e:
             print 'Error parsing <a> tags : ',e.message
 
@@ -98,21 +105,28 @@ class RecursiveCrawler():
         # add error handling here
 
         for link in valid_links:
+            pid = link[0]
+            url = link[1]
+            # add dp/repition check here
             self.pages_processsed += 1
-            tempitem = HtmlItem(self.id_count,link[1])
+
+            tempitem = HtmlItem(self.id_count,url)
+            tempitem.parent_id = pid
+            tempitem.recursion_level = self.items[pid].recursion_level + 1
+
+            self.items[str(self.id_count)] = deepcopy(tempitem)
+
+            #limit recursion
+            if self.items[pid].recursion_level + 1 < self.max_recursion_level:
+                self.unfinished_links_queue.put_nowait(str(self.id_count))
+
             self.id_count += 1
-            tempitem.parent_id = link[0].id
-            if link[0].recursion_level + 1 < self.max_recursion_level:
-                # add dp/repition check here
-                tempitem.recursion_level = link[0].recursion_level + 1
-                self.unfinished_links_queue.put_nowait(tempitem)
-                # add some way to store these objects
+
 
     def crawl(self):
         while not self.unfinished_links_queue.empty() and not self.workers_pool.full():
             for x in xrange(0, min(self.unfinished_links_queue.qsize(), self.workers_pool.free_count())):
-                greenlet_thread = self.workers_pool.spawn(self.add_new_links)
-                self.workers_pool.start(greenlet_thread)
+                self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
 
         self.workers_pool.join()
 
@@ -122,4 +136,5 @@ c.crawl()
 
 print 'Items Processed : ', c.pages_processsed
 print 'Requests Made : ', c.requests_sent
+print 'Errored Requests Made : ', c.err_requests
 print ('The script took {0} second !'.format(time.time() - startTime))
