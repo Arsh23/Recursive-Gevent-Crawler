@@ -27,7 +27,7 @@ class HtmlItem():
 
 class RecursiveCrawler():
 
-    def __init__(self,start_url,domain,max_workers):
+    def __init__(self,start_url,domain,max_recursion_level,max_workers):
         self.unfinished_links_queue = gevent.queue.Queue()
         self.workers_pool = gevent.pool.Pool(max_workers)
         self.max_workers = max_workers
@@ -38,8 +38,7 @@ class RecursiveCrawler():
         self.requests_sent = 0
         self.err_requests = 0
         self.id_count = 0
-        self.max_recursion_level = 2
-        # add dict to store values
+        self.max_recursion_level = max_recursion_level
         self.items = {}
 
         self.root = HtmlItem(0,start_url)
@@ -131,7 +130,7 @@ class RecursiveCrawler():
         self.workers_pool.join()
 
 
-c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',32)
+c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',2,32)
 c.crawl()
 
 print 'Items Processed : ', c.pages_processsed
