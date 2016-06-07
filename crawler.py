@@ -15,6 +15,7 @@ class HtmlItem():
     def __init__(self,id,url):
         self.id = id
         self.parent_id = 0
+        self.children_id = []
         self.url = url
         self.title = ''
         self.recursion_level = 0
@@ -111,6 +112,7 @@ class RecursiveCrawler():
 
             tempitem = HtmlItem(self.id_count,url)
             tempitem.parent_id = pid
+            tempitem.children_id.append(self.id_count)
             tempitem.recursion_level = self.items[pid].recursion_level + 1
 
             self.items[str(self.id_count)] = deepcopy(tempitem)
