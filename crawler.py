@@ -72,12 +72,13 @@ class RecursiveCrawler():
 
     def parse(self):
         tempid = self.unfinished_links_queue.get_nowait()
-        print 'tempid',tempid
+        yield tempid
+
         url = self.items[tempid].url
 
         html_code = self.request_html(url)
         if html_code is None:
-            return []
+            yield []
 
         tree = html.fromstring(html_code)
         try:
@@ -86,11 +87,11 @@ class RecursiveCrawler():
             print 'Error parsing title : ',e.message
             self.err_requests += 1
             # self.unfinished_links_queue.put_nowait(tempid) #maybe unwise
-            return []
+            yield []
 
         print 'Parsed - ', title
         try:
-            return [ (tempid, x.xpath('.//@href')[0]) for x in tree.xpath('//*[@id="mw-content-text"]//a') ]
+            yield [ x.xpath('.//@href')[0] for x in tree.xpath('//*[@id="mw-content-text"]//a') ]
         except Exception as e:
             print 'Error parsing <a> tags : ',e.message
 
@@ -101,12 +102,13 @@ class RecursiveCrawler():
         return 'bad'
 
     def add_new_links(self):
-        valid_links = [ (x[0],self.domain + x[1]) for x in self.parse() if self.check_url(x[1]) == 'good' ]
+        parser = self.parse()
+        pid = next(parser)
+
+        valid_links = [ self.domain + x for x in next(parser) if self.check_url(x) == 'good' ]
         # add error handling here
 
-        for link in valid_links:
-            pid = link[0]
-            url = link[1]
+        for url in valid_links:
             # add dp/repition check here
             self.pages_processsed += 1
 
