@@ -17,6 +17,7 @@ class HtmlItem():
         self.url = url
         self.title = ''
         self.recursion_level = 0
+        self.links = []
 
     def __repr__(self):
         return 'HtmlItem(id=%i, url=%s)' % (self.id, self.url)
@@ -33,15 +34,18 @@ class RecursiveCrawler():
         self.domain = domain
         self.session = requests.Session()
         self.start_url = start_url
+
         self.pages_processed = 0
         self.requests_sent = 0
         self.err_requests = 0
         self.cached_requests = 0
         self.id_count = 0
         self.max_recursion_level = max_recursion_level
+
         self.items = {}
         self.dp = {}
         self.structured_urls = {}
+
         self.start_time = time.time()
         self.end_time = time.time()
 
@@ -59,35 +63,44 @@ class RecursiveCrawler():
     def __str__(self):
         pass
 
-    def request_html(self,url):
+    def request_html(self,url,tempid):
         print 'Request sent for - '+url
+
         if url not in self.dp:
             self.requests_sent +=1
+
             try:
                 response = self.session.get(url)
             except Exception as e:
-                print 'Request for '+url+' failed, will try later : ',e.errno,e.message
+                print 'Request for %s failed, will try later : %s ' % (url,e.message)
                 self.err_requests += 1
                 return None
+
             if response.status_code == 200:
-                self.dp[url] = response.text
+                self.dp[url] = tempid
                 return response.text
             else:
+                print 'Error %i in request for %s' % (response.status_code,url)
                 return None
         else:
             print 'URL already stored , using cached data'
             self.cached_requests += 1
-            return self.dp[url]
+            return 'cached'
 
     def parse(self):
         tempid = self.unfinished_links_queue.get_nowait()
         yield tempid
 
         url = self.items[tempid].url
+        # self.dp[url] = tempid
 
-        html_code = self.request_html(url)
+        html_code = self.request_html(url,tempid)
         if html_code is None:
             yield []
+
+        if html_code == 'cached':
+            # print self.items[tempid].links
+            yield self.items[self.dp[url]].links
 
         tree = html.fromstring(html_code)
         try:
@@ -101,12 +114,15 @@ class RecursiveCrawler():
 
         print 'Parsed - ', title
         try:
-            yield [ x.xpath('.//@href')[0] for x in tree.xpath('//*[@id="mw-content-text"]//a') ]
+            self.items[tempid].links = [ x.xpath('.//@href')[0] for x in tree.xpath('//*[@id="mw-content-text"]//a') ]
+            yield self.items[tempid].links
         except Exception as e:
             print 'Error parsing <a> tags : ',e.message
 
     def check_url(self,url):
         #convert this to regex
+        if ':' in url:
+            return 'bad'
         if url[0:6] == '/wiki/' and url[-4:-3] != '.':
             return 'good'
         return 'bad'
@@ -119,7 +135,6 @@ class RecursiveCrawler():
         # add error handling here
 
         for url in valid_links:
-            # add dp/repition check here
             self.pages_processed += 1
 
             tempitem = HtmlItem(self.id_count,url)
