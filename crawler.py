@@ -19,7 +19,7 @@ class HtmlItem():
         self.recursion_level = 0
 
     def __repr__(self):
-        pass
+        return 'HtmlItem(id=%i, url=%s)' % (self.id, self.url)
 
     def __str__(self):
         pass
@@ -49,7 +49,8 @@ class RecursiveCrawler():
         self.id_count += 1
 
     def __repr__(self):
-        pass
+        return 'RecursiveCrawler(start_url=%s, domain=%s, max_recursion_level=%s, max_workers=%s)' % \
+        (self.start_url, self.domain,self.max_recursion_level,self.max_workers)
 
     def __str__(self):
         pass
