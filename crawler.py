@@ -22,7 +22,7 @@ class HtmlItem():
         return 'HtmlItem(id=%i, url=%s)' % (self.id, self.url)
 
     def __str__(self):
-        pass
+        return '{%i} %s' % (self.id, self.url)
 
 class RecursiveCrawler():
 
@@ -41,8 +41,12 @@ class RecursiveCrawler():
         self.max_recursion_level = max_recursion_level
         self.items = {}
         self.dp = {}
+        self.structured_urls = {}
         self.start_time = time.time()
         self.end_time = time.time()
+
+        for x in range(self.max_recursion_level+1):
+            self.structured_urls[x] = []
 
         self.root = HtmlItem(0,start_url)
         self.items['0'] = deepcopy(self.root)
@@ -152,7 +156,18 @@ class RecursiveCrawler():
         print 'Cached Requests : ', self.cached_requests
         print 'The Crawler took {0} second !'.format(self.end_time - self.start_time)
 
+    def recursive_struct(self,tempid,rec):
+        self.structured_urls[rec].append(self.items[tempid].url)
+        print '   |'*rec + '---' + str(self.items[tempid])
+        if self.items[tempid].children_id != []:
+            [ self.recursive_struct(str(x),rec+1) for x in self.items[tempid].children_id ]
+            print '   |'*rec
+
+    def structure_urls(self):
+        self.recursive_struct('0',0)
+        return self.structured_urls
 #
-# c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',2,32)
+# from crawler import RecursiveCrawler
+# c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',1,32)
 # c.crawl()
 # c.stats()
