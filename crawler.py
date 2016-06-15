@@ -35,7 +35,7 @@ class RecursiveCrawler():
         self.domain = domain
         self.session = requests.Session()
         self.start_url = start_url
-        self.pages_processsed = 0
+        self.pages_processed = 0
         self.requests_sent = 0
         self.err_requests = 0
         self.cached_requests = 0
@@ -47,10 +47,10 @@ class RecursiveCrawler():
         self.root = HtmlItem(0,start_url)
         self.items['0'] = deepcopy(self.root)
         self.id_count += 1
-
-        self.unfinished_links_queue.put_nowait('0')
-        self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
-        self.workers_pool.join()
+        #
+        # self.unfinished_links_queue.put_nowait('0')
+        # self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
+        # self.workers_pool.join()
 
     def __repr__(self):
         pass
@@ -119,11 +119,11 @@ class RecursiveCrawler():
 
         for url in valid_links:
             # add dp/repition check here
-            self.pages_processsed += 1
+            self.pages_processed += 1
 
             tempitem = HtmlItem(self.id_count,url)
             tempitem.parent_id = pid
-            tempitem.children_id.append(self.id_count)
+            self.items[pid].children_id.append(self.id_count)
             tempitem.recursion_level = self.items[pid].recursion_level + 1
 
             self.items[str(self.id_count)] = deepcopy(tempitem)
@@ -136,6 +136,10 @@ class RecursiveCrawler():
 
 
     def crawl(self):
+        self.unfinished_links_queue.put_nowait('0')
+        self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
+        self.workers_pool.join()
+
         while not self.unfinished_links_queue.empty() and not self.workers_pool.full():
             for x in xrange(0, min(self.unfinished_links_queue.qsize(), self.workers_pool.free_count())):
                 self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
@@ -146,7 +150,7 @@ class RecursiveCrawler():
 c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',2,32)
 c.crawl()
 
-print 'Items Processed : ', c.pages_processsed
+print 'Items Processed : ', c.pages_processed
 print 'Requests Made : ', c.requests_sent
 print 'Errored Requests Made : ', c.err_requests
 print 'Cached Requests : ', c.cached_requests
