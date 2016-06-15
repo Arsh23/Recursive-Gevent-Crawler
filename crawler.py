@@ -38,9 +38,11 @@ class RecursiveCrawler():
         self.pages_processsed = 0
         self.requests_sent = 0
         self.err_requests = 0
+        self.cached_requests = 0
         self.id_count = 0
         self.max_recursion_level = max_recursion_level
         self.items = {}
+        self.dp = {}
 
         self.root = HtmlItem(0,start_url)
         self.items['0'] = deepcopy(self.root)
@@ -58,17 +60,23 @@ class RecursiveCrawler():
 
     def request_html(self,url):
         print 'Request sent for - '+url
-        self.requests_sent +=1
-        try:
-            response = self.session.get(url)
-        except Exception as e:
-            print 'Request for '+url+' failed, will try later : ',e.message
-            self.err_requests += 1
-            return None
-        if response.status_code == 200:
-            return response.text
+        if url not in self.dp:
+            self.requests_sent +=1
+            try:
+                response = self.session.get(url)
+            except Exception as e:
+                print 'Request for '+url+' failed, will try later : ',e.errno,e.message
+                self.err_requests += 1
+                return None
+            if response.status_code == 200:
+                self.dp[url] = response.text
+                return response.text
+            else:
+                return None
         else:
-            return None
+            print 'URL already stored , using cached data'
+            self.cached_requests += 1
+            return self.dp[url]
 
     def parse(self):
         tempid = self.unfinished_links_queue.get_nowait()
@@ -83,6 +91,7 @@ class RecursiveCrawler():
         tree = html.fromstring(html_code)
         try:
             title = tree.xpath('//*[@id="firstHeading"]/text()')[0]
+            self.items[tempid].title = title
         except Exception as e:
             print 'Error parsing title : ',e.message
             self.err_requests += 1
@@ -140,4 +149,5 @@ c.crawl()
 print 'Items Processed : ', c.pages_processsed
 print 'Requests Made : ', c.requests_sent
 print 'Errored Requests Made : ', c.err_requests
+print 'Cached Requests : ', c.cached_requests
 print ('The script took {0} second !'.format(time.time() - startTime))
