@@ -8,8 +8,6 @@ import gevent.pool
 import gevent.queue
 from copy import deepcopy
 
-startTime = time.time()
-
 class HtmlItem():
 
     def __init__(self,id,url):
@@ -43,14 +41,12 @@ class RecursiveCrawler():
         self.max_recursion_level = max_recursion_level
         self.items = {}
         self.dp = {}
+        self.start_time = time.time()
+        self.end_time = time.time()
 
         self.root = HtmlItem(0,start_url)
         self.items['0'] = deepcopy(self.root)
         self.id_count += 1
-        #
-        # self.unfinished_links_queue.put_nowait('0')
-        # self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
-        # self.workers_pool.join()
 
     def __repr__(self):
         pass
@@ -136,6 +132,7 @@ class RecursiveCrawler():
 
 
     def crawl(self):
+        self.start_time = time.time()
         self.unfinished_links_queue.put_nowait('0')
         self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
         self.workers_pool.join()
@@ -145,13 +142,16 @@ class RecursiveCrawler():
                 self.workers_pool.start(self.workers_pool.spawn(self.add_new_links))
 
         self.workers_pool.join()
+        self.end_time = time.time()
 
+    def stats(self):
+        print 'Items Processed : ', self.pages_processed
+        print 'Requests Made : ', self.requests_sent
+        print 'Errored Requests Made : ', self.err_requests
+        print 'Cached Requests : ', self.cached_requests
+        print 'The Crawler took {0} second !'.format(self.end_time - self.start_time)
 
-c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',2,32)
-c.crawl()
-
-print 'Items Processed : ', c.pages_processed
-print 'Requests Made : ', c.requests_sent
-print 'Errored Requests Made : ', c.err_requests
-print 'Cached Requests : ', c.cached_requests
-print ('The script took {0} second !'.format(time.time() - startTime))
+#
+# c = RecursiveCrawler('https://en.wikipedia.org/wiki/Python_(programming_language)','https://en.wikipedia.org',2,32)
+# c.crawl()
+# c.stats()
